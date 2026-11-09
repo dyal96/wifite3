@@ -222,7 +222,21 @@ def resolve_driver(vid: int, pid: int, dev: usb.core.Device) -> Optional[Tuple[t
 
 def _raise_usblib_fatal(cause: Exception) -> NoReturn:
     # pyusb's NoBackendError is opaque.
-    if sys.platform.startswith("linux"):
+    if sys.platform == "android" or (
+        "ANDROID_ROOT" in os.environ
+        or ("PREFIX" in os.environ
+            and "/com.termux/" in os.environ.get("PREFIX", ""))
+    ):
+        # Python ≥ 3.13 reports sys.platform == 'android'; older builds in
+        # Termux still say 'linux' but set $PREFIX under /data/data/com.termux.
+        prefix = os.environ.get("PREFIX", "/data/data/com.termux/files/usr")
+        message = (
+            "libusb was not found. Install it inside Termux and ensure the "
+            "linker can find it:\n\n"
+            f"  pkg install -y libusb\n"
+            f"  export LD_LIBRARY_PATH=\"{prefix}/lib:$LD_LIBRARY_PATH\"\n\n"
+            "Then re-run wifit3. See termux-guide.md § Troubleshooting for details.")
+    elif sys.platform.startswith("linux"):
         message = (
             "The bundled libusb could not be loaded. A system dependency is missing.\n\n"
             "Install it for your architecture and replug the card:\n"

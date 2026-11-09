@@ -46,3 +46,22 @@ def test_linux_node_path_raises_without_a_backend(monkeypatch):
     monkeypatch.setattr(manager, "usb_backend", _no_backend)
     with pytest.raises(manager.WifiteFatalError):
         manager.linux_node_path(DeviceID(0x148F, 0x5370, "RT5370", bus=1, address=2))
+
+
+def test_android_platform_gives_termux_advice(monkeypatch):
+    """On Python ≥ 3.13 Android, the error must mention 'pkg install' not 'corrupt'."""
+    import sys
+    monkeypatch.setattr(sys, "platform", "android")
+    monkeypatch.setattr(manager, "usb_backend", _no_backend)
+    with pytest.raises(manager.WifiteFatalError, match="pkg install"):
+        manager.raw_devices()
+
+
+def test_termux_env_gives_termux_advice(monkeypatch):
+    """Older Termux (sys.platform == 'linux') detected via $PREFIX."""
+    import os, sys
+    monkeypatch.setattr(sys, "platform", "linux")
+    monkeypatch.setenv("PREFIX", "/data/data/com.termux/files/usr")
+    monkeypatch.setattr(manager, "usb_backend", _no_backend)
+    with pytest.raises(manager.WifiteFatalError, match="pkg install"):
+        manager.raw_devices()

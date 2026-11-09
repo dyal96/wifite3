@@ -1,4 +1,5 @@
 """The USB backend interface: one libusb context."""
+import os
 from types import SimpleNamespace
 
 import pytest
@@ -98,3 +99,32 @@ def test_desktop_libusb_falls_back_to_system(monkeypatch):
                         SimpleNamespace(get_libusb1_backend=lambda: None))
     monkeypatch.setattr("usb.backend.libusb1.get_backend", lambda: system)
     assert backend._desktop_libusb() is system
+
+
+def test_termux_fallback_prepends_ld_library_path(monkeypatch, tmp_path):
+    """When the .so exists under $PREFIX/lib and LD_LIBRARY_PATH is unset,
+    the Termux fallback must inject the directory before loading."""
+    lib_dir = tmp_path / "lib"
+    lib_dir.mkdir()
+    (lib_dir / "libusb-1.0.so").write_bytes(b"")   # just needs to exist
+
+    monkeypatch.setattr(backend, "libusb_package", None)
+    monkeypatch.setenv("PREFIX", str(tmp_path))
+    monkeypatch.delenv("LD_LIBRARY_PATH", raising=False)
+
+    captured = {}
+    call_count = [0]
+
+    def fake_get_backend(find_library=None):
+        call_count[0] += 1
+        if find_library is not None:
+            captured["find_library_result"] = find_library("usb-1.0")
+            return object()  # "loaded" backend
+        return None  # first call: system lookup fails
+
+    monkeypatch.setattr("usb.backend.libusb1.get_backend", fake_get_backend)
+    result = backend._desktop_libusb()
+
+    assert result is not None
+    assert captured["find_library_result"] == str(lib_dir / "libusb-1.0.so")
+    assert str(lib_dir) in os.environ.get("LD_LIBRARY_PATH", "")

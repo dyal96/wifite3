@@ -86,10 +86,19 @@ def _desktop_libusb() -> Optional[IBackend]:
     from usb.backend import libusb1
     backend = libusb1.get_backend()
     if backend is None:
-        # Fallback for Termux on Android or custom PREFIX
+        # Fallback for Termux on Android or custom PREFIX.
+        # On Termux the system linker does not search $PREFIX/lib by default,
+        # so ctypes.CDLL may fail even when the .so exists.  Ensure the
+        # directory is on LD_LIBRARY_PATH before the load attempt.
         prefix = os.environ.get("PREFIX", "/data/data/com.termux/files/usr")
-        candidate = os.path.join(prefix, "lib", "libusb-1.0.so")
+        lib_dir = os.path.join(prefix, "lib")
+        candidate = os.path.join(lib_dir, "libusb-1.0.so")
         if os.path.isfile(candidate):
+            ld_path = os.environ.get("LD_LIBRARY_PATH", "")
+            if lib_dir not in ld_path.split(os.pathsep):
+                os.environ["LD_LIBRARY_PATH"] = (
+                    f"{lib_dir}{os.pathsep}{ld_path}" if ld_path else lib_dir)
+                logger.debug("prepended %s to LD_LIBRARY_PATH for Termux", lib_dir)
             backend = libusb1.get_backend(find_library=lambda x: candidate)
     if backend is None:
         logger.error("system libusb not found")
