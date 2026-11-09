@@ -1,4 +1,4 @@
-# wifit3 — Architectural Blueprint & System Reference
+# wifit3 -- Architectural Blueprint & System Reference
 
 > **Companion Document:** `todo_list.md` (or `todo.md`)  
 > **Purpose:** Comprehensive technical reference covering every subsystem, data flow, hardware abstraction, and operational mechanic in `wifit3`. Designed so developers and AI agents can understand, navigate, and plan tasks across the entire codebase without re-reading dozens of source files.
@@ -133,6 +133,7 @@ Recovered artifacts are saved automatically to the `captures/` directory:
 - **`*.pcap`**: Full 4-way EAPOL handshakes and WEP IV captures.
 - **`*.hc22000`**: Hashcat-ready WPA-PBKDF2 PMKID / EAPOL hashes.
 - **`*.meta`**: JSON sidecars storing network metadata, recovered plaintext PSKs, WPS PINs, and WEP keys.
+- **`wordlists/cracked_wordlists.txt`**: Plaintext cracked passwords auto-appended upon recovery across WPA PSK and WPS PIN/PBC attacks, immediately fed into subsequent attack guess lists. For custom dictionary creation, see [dyal96/Custom-Wordlist-Generator](https://github.com/dyal96/Custom-Wordlist-Generator).
 
 ---
 

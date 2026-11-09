@@ -23,7 +23,7 @@ import time
 from collections import deque
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from rich.markup import escape
 from rich.text import Text
@@ -57,6 +57,7 @@ from wifit3.models.access_point import eap_only, no_passphrase
 from wifit3.persist.ap_state import Key, PasswordStatus, epoch_sort_key
 from wifit3.persist.config import Config
 from wifit3.persist.save import SaveResult
+from wifit3.ui.ap_table import APTable
 from wifit3.ui import focus_model as fm, pmkid_log
 from wifit3.ui.capture_log import DECLOAK_METHOD_LABELS, saved_psk_chip, short_sta
 from wifit3.ui.eapol_aggregate import EapolAggregator
@@ -158,6 +159,7 @@ class FocusViewV2(Screen):
     # Attack hotkeys come from the campaign registry
     BINDINGS = [
         Binding("escape", "go_back", "Back", show=True),
+        Binding("n", "next_target", "Next Target", show=True),
         Binding("d", "deauth_all", "Deauth", show=True),
         *[Binding(cls.hotkey[0], f"campaign('{cls.key}')", cls.hotkey[1], show=True)
           for cls in fm.BUTTON_CAMPAIGNS if cls.hotkey],
@@ -326,6 +328,7 @@ class FocusViewV2(Screen):
         with Horizontal(id="topbar"):
             with Horizontal(id="actions"):
                 yield Button("‹ Scanner", id="back")
+                yield Button("Next ›", id="next-target")
                 # The full attack set is composed once (hidden); refresh_buttons shows the ones that fit the target.
                 for bid, label in _ATTACK_BUTTONS:
                     btn = Button(label, id=bid, classes="attack-btn")
@@ -976,6 +979,8 @@ class FocusViewV2(Screen):
         bid = event.button.id or ""
         if bid == "back":
             await self.action_go_back()
+        elif bid == "next-target":
+            await self.action_next_target()
         elif bid == "deauth-all":
             self.run_worker(self._run_deauth_broadcast(), exclusive=True)
         elif bid == "btn-deauth":
@@ -1073,7 +1078,7 @@ class FocusViewV2(Screen):
             ))
             self._log(treelog.branch("runs Broadcom wps_monitor"))
             self._log(treelog.branch(
-                "[link=https://github.com/derv82/wifit3/discussions/135][cyan]derv82/wifit3 discussion#135[/cyan][/link]"
+                "[link=https://github.com/dyal96/wifite3/discussions/135][cyan]dyal96/wifite3 discussion#135[/cyan][/link]"
             ))
         elif implementation is WpsImplementation.HOSTAPD:
             self._log(treelog.branch("[dim][bold]broadcom-wps:[/bold] hostapd, unaffected[/dim]"))
@@ -1799,6 +1804,81 @@ class FocusViewV2(Screen):
                 await self.action_go_back()
 
     # ----- navigation --------------------------------------------------------
+
+    async def action_next_target(self) -> None:
+        """'n': skip the current target AP and advance to the next target."""
+        curr_ap = self._target_ap
+        curr_bssid = curr_ap.bssid if curr_ap else None
+
+        # 1. Stop active auto mode or manual campaigns
+        was_auto = self._auto_mode_active or getattr(self, "_auto_mode_return_to_scanner", False)
+        if self._auto_mode_active:
+            self._auto_mode_active = False
+            self._auto_mode_return_to_scanner = False
+            if self._controls.current is not None:
+                self._controls.request_stop()
+        else:
+            campaign = self._controls.current
+            self._controls.stop()
+            if campaign is not None:
+                await campaign.stop()
+
+        self._stop_probe()
+
+        # 2. Mark current target as visited in scanner so auto mode won't repeat it
+        scanner = getattr(self.app, "scanner_view", None)
+        if scanner is not None and curr_bssid:
+            scanner._automode_visited.add(curr_bssid)
+
+        # 3. Find next candidate
+        next_target: Optional[AccessPoint] = None
+        if was_auto and scanner is not None:
+            next_target = scanner.next_automode_candidate()
+            if next_target is not None:
+                name = escape(next_target.ssid or next_target.bssid)
+                self._log(f"[bold yellow]Skipped target; Auto Mode advancing to {name}...[/bold yellow]")
+                scanner._automode_visited.add(next_target.bssid)
+                scanner._automode_scanned += 1
+                self.app.target_ap = next_target
+                self.auto_run_on_enter = True
+                await self._enter_target()
+                self.start_auto_mode()
+                return
+            else:
+                self._log("[bold yellow]No more unattacked targets available in Auto Mode. Returning to scanner.[/bold yellow]")
+                await self.action_go_back()
+                return
+
+        # Manual mode: find next AP in table order or cache
+        if scanner is not None:
+            try:
+                table = scanner.query_one("#ap-table", APTable)
+                order = table.ordered_bssids
+            except Exception:
+                order = []
+            if order and curr_bssid in order:
+                idx = order.index(curr_bssid)
+                for step in range(1, len(order)):
+                    cand_bssid = order[(idx + step) % len(order)]
+                    cand = scanner.ap_cache.get(cand_bssid)
+                    if cand is not None and cand.bssid != curr_bssid:
+                        next_target = cand
+                        table.move_cursor((idx + step) % len(order))
+                        break
+            if next_target is None and scanner.ap_cache:
+                for cand in scanner.ap_cache.values():
+                    if cand.bssid != curr_bssid:
+                        next_target = cand
+                        break
+
+        if next_target is not None:
+            name = escape(next_target.ssid or next_target.bssid)
+            self._log(f"[bold yellow]Skipped target; switching to {name}...[/bold yellow]")
+            self.app.target_ap = next_target
+            await self._enter_target()
+        else:
+            self._log("[bold yellow]No other target APs available. Returning to scanner.[/bold yellow]")
+            await self.action_go_back()
 
     async def action_go_back(self) -> None:
         self.stop_auto_mode()

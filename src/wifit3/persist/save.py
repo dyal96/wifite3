@@ -344,12 +344,39 @@ def save_wep_key(ap: AccessPoint, key: bytes) -> Optional[SaveResult]:
 
 # ----- WPS PIN / PBC --------------------------------------------------------
 
+def append_cracked_wordlist(psk: str | None) -> None:
+    """Auto-append cracked password to wordlists/cracked_wordlists.txt."""
+    if not psk:
+        return
+    clean_psk = psk.strip()
+    if not clean_psk:
+        return
+    try:
+        from wifit3.crack.passwords import cracked_wordlist_path
+        target_path = cracked_wordlist_path()
+        existing: set[str] = set()
+        if target_path.exists():
+            existing = {
+                line.strip()
+                for line in target_path.read_text(encoding="utf-8", errors="ignore").splitlines()
+                if line.strip()
+            }
+        if clean_psk not in existing:
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            with target_path.open("a", encoding="utf-8") as f:
+                f.write(f"{clean_psk}\n")
+    except Exception:
+        pass
+
+
 def save_wps_pin(ap: AccessPoint, pin: str, psk: Optional[str]) -> Optional[SaveResult]:
     """Persist a WPS-PIN credential, with no PSK line when ``psk`` is None.
     Dedupes by (PIN, PSK) for this BSSID."""
     captures_dir = Path(Config.captures_dir)
     if psk == "":
         return None
+    if psk:
+        append_cracked_wordlist(psk)
     for p in _existing(captures_dir, ap.bssid, "_wps_pin.txt"):
         try:
             text = p.read_text(encoding="utf-8", errors="replace")
@@ -388,6 +415,7 @@ def _save_psk(ssid: str | None, bssid: str, psk: str, suffix: str) -> Optional[S
     captures_dir = Path(Config.captures_dir)
     if not psk:
         return None
+    append_cracked_wordlist(psk)
     for p in _existing(captures_dir, bssid, suffix):
         try:
             text = p.read_text(encoding="utf-8", errors="replace")

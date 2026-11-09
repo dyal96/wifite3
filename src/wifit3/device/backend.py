@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from abc import ABC, abstractmethod
 from typing import Callable, List, Optional
 
@@ -84,6 +85,12 @@ def _desktop_libusb() -> Optional[IBackend]:
             return backend
     from usb.backend import libusb1
     backend = libusb1.get_backend()
+    if backend is None:
+        # Fallback for Termux on Android or custom PREFIX
+        prefix = os.environ.get("PREFIX", "/data/data/com.termux/files/usr")
+        candidate = os.path.join(prefix, "lib", "libusb-1.0.so")
+        if os.path.isfile(candidate):
+            backend = libusb1.get_backend(find_library=lambda x: candidate)
     if backend is None:
         logger.error("system libusb not found")
     return backend

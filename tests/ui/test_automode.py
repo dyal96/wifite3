@@ -116,7 +116,16 @@ class _FocusHost(App):
         self.target_ap = None
         self.pbc_enabled = True
         self.vault = MagicMock()
+        self.vault.known_psk.return_value = None
+        self.vault.has_psk.return_value = False
+        self.vault.has_wep_key.return_value = False
+        self.vault.has_wps_psk.return_value = False
+        self.vault.has_handshake.return_value = False
+        self.vault.has_pmkid.return_value = False
         self.vault.ap_state.return_value.keys = ()
+
+    def guessid(self, ap):
+        return None
 
     def on_mount(self) -> None:
         self.push_screen(FocusViewV2())
@@ -217,3 +226,57 @@ def test_automode_progress_counters_reset_on_enable():
     # Disable auto mode.
     screen.action_toggle_automode()
     assert screen.automode_active is False
+
+
+@pytest.mark.asyncio
+async def test_focus_next_target_skips_and_advances_automode():
+    """In Auto Mode, 'n' skips the current AP and immediately engages the next candidate."""
+    host = _FocusHost()
+    scanner = ScannerView()
+    host.scanner_view = scanner
+    async with host.run_test(size=(120, 40)) as pilot:
+        await pilot.pause(0)
+        focus = host.screen
+        focus._tick_timer.stop()
+
+        ap1 = build_ap(bssid="00:11:22:33:44:55", ssid="TargetOne", channel=6, encryption="WPA2")
+        ap2 = build_ap(bssid="aa:bb:cc:dd:ee:ff", ssid="TargetTwo", channel=1, encryption="WPA2")
+        scanner.ap_cache[ap1.bssid] = ap1
+        scanner.ap_cache[ap2.bssid] = ap2
+
+        host.target_ap = ap1
+        focus._target_ap = ap1
+        focus._auto_mode_active = True
+        scanner._automode_visited.add(ap1.bssid)
+
+        await focus.action_next_target()
+
+        assert ap1.bssid in scanner._automode_visited
+        assert ap2.bssid in scanner._automode_visited
+        assert host.target_ap == ap2
+
+
+@pytest.mark.asyncio
+async def test_focus_next_target_manual_switch():
+    """In manual mode, 'n' switches to the next available AP."""
+    host = _FocusHost()
+    scanner = ScannerView()
+    host.scanner_view = scanner
+    async with host.run_test(size=(120, 40)) as pilot:
+        await pilot.pause(0)
+        focus = host.screen
+        focus._tick_timer.stop()
+
+        ap1 = build_ap(bssid="00:11:22:33:44:55", ssid="TargetOne", channel=6, encryption="WPA2")
+        ap2 = build_ap(bssid="aa:bb:cc:dd:ee:ff", ssid="TargetTwo", channel=1, encryption="WPA2")
+        scanner.ap_cache[ap1.bssid] = ap1
+        scanner.ap_cache[ap2.bssid] = ap2
+
+        host.target_ap = ap1
+        focus._target_ap = ap1
+        focus._auto_mode_active = False
+
+        await focus.action_next_target()
+
+        assert host.target_ap == ap2
+

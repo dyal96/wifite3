@@ -6,7 +6,13 @@ from typing import Any, Dict, Iterator, Optional
 
 from wifit3.crack import wpa_psk
 from wifit3.crack.hc22000_format import Hc22000Line
-from wifit3.crack.passwords import DEFAULT_PASSWORDS_PATH, expand_wordlists, read_passwords, ssid_passwords
+from wifit3.crack.passwords import (
+    DEFAULT_PASSWORDS_PATH,
+    cracked_wordlist_path,
+    expand_wordlists,
+    read_passwords,
+    ssid_passwords,
+)
 from wifit3.dot11 import wpa
 from wifit3.models import PersistedCapture, ToolCapability, ToolResult, ToolStatus
 from wifit3.models.jobs import JobAction, JobState, ToolName
@@ -111,6 +117,9 @@ class CpuCrackTool(CrackerTool[CpuCrackQueue]):
             raise ValueError(f"Wordlist not found: {', '.join(requested)}")
         if job.config.get("default_passwords"):
             wordlists.insert(0, str(DEFAULT_PASSWORDS_PATH.resolve()))
+        cracked_wl = cracked_wordlist_path()
+        if cracked_wl.exists() and cracked_wl.stat().st_size > 0:
+            wordlists.insert(0, str(cracked_wl.resolve()))
         wordlists = list(dict.fromkeys(wordlists))
         require_hashlines(job.hashlines_path)
         queue = CpuCrackQueue(wordlists=wordlists, ssid=capture.ssid or "", bssid=capture.bssid,

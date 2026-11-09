@@ -170,6 +170,7 @@ class ScannerView(Screen):
         Binding("w", "wps_pbc_mode", "WPS PBC", show=True),
         Binding("v", "open_vault", "Vault", show=True),
         Binding("a", "toggle_automode", "Auto Mode", show=True),
+        Binding("n", "next_target", "Next Target", show=True),
         Binding("home", "scroll_home", "Top", show=False, priority=True),
         Binding("end", "scroll_end", "Bottom", show=False, priority=True),
         Binding("g", "scroll_home", "Top", show=False, priority=True),
@@ -527,14 +528,19 @@ class ScannerView(Screen):
             except Exception:
                 pass
 
-    def _automode_tick(self) -> None:
-        """Pick the best unattacked AP candidate and launch into FocusView."""
-        if not self.automode_active or self.app.screen is not self:
+    def action_next_target(self) -> None:
+        """Advance cursor to the next target AP in the table."""
+        try:
+            table = self.query_one("#ap-table", APTable)
+        except Exception:
             return
-        array = self.app.array
-        if not array:
+        if not table.row_count:
             return
+        next_row = (table.cursor_row + 1) % table.row_count
+        table.move_cursor(next_row)
 
+    def next_automode_candidate(self) -> Optional[AccessPoint]:
+        """Find the highest-scoring eligible AP that has not yet been audited."""
         candidates: List[AccessPoint] = []
         vault = self.app.vault
         now = time.time()
@@ -555,13 +561,27 @@ class ScannerView(Screen):
             candidates.append(ap)
 
         if not candidates:
-            return
+            return None
 
         candidates.sort(key=lambda a: self._automode_score(a), reverse=True)
-        target = candidates[0]
+        return candidates[0]
+
+    def _automode_tick(self) -> None:
+        """Pick the best unattacked AP candidate and launch into FocusView."""
+        if not self.automode_active or self.app.screen is not self:
+            return
+        array = self.app.array
+        if not array:
+            return
+
+        target = self.next_automode_candidate()
+        if not target:
+            return
+
         self._automode_visited.add(target.bssid)
         self._automode_scanned += 1
 
+        vault = self.app.vault
         # Count already-cracked APs (vault gains since auto mode started).
         self._automode_cracked = sum(
             1 for b in self._automode_visited
@@ -569,7 +589,6 @@ class ScannerView(Screen):
             and (vault.has_psk(ap) or vault.has_wep_key(ap) or vault.has_wps_psk(ap))
         )
 
-        enc = (target.encryption or "").upper()
         score = self._automode_score(target)
         label = escape(target.ssid or target.bssid)
         self._write_log(treelog.header(

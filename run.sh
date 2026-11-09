@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# wifite3 / wifit3 — Linux Quick Launcher & Environment Bootstrapper
+# wifite3 / wifit3 - Linux Quick Launcher & Environment Bootstrapper
 # Repository: https://github.com/dyal96/wifite3
-# Upstream:   https://github.com/derv82/wifit3
+# Upstream:   https://github.com/dyal96/wifite3
 # ==============================================================================
 
 set -e

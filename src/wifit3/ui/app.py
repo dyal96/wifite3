@@ -53,7 +53,7 @@ HeaderClock.ALLOW_SELECT = False
 class WifiteApp(App):
     """wifit3 TUI Main App."""
 
-    TITLE = f"wifit3 v{__version__} - derv82"
+    TITLE = f"wifit3 v{__version__} - dyal96"
 
     ENABLE_COMMAND_PALETTE = False
     BINDINGS = [

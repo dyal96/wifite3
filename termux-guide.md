@@ -137,10 +137,18 @@ wifit3
 - **Terminal Sizing Tip:** For best layout, rotate your phone to **landscape** orientation, or pinch-to-zoom out in Termux to fit 100+ columns.
 - **Controls:**
   - `A`: Toggle Auto Mode
+  - `N`: Next target (skip current target and advance to next AP)
   - `Q`: Quit
   - `C`: Channel filter
   - `V`: Open Vault (cracked passwords and captured handshakes)
   - `ESC`: Go back from Focus view to Scanner
+
+---
+
+## 📝 Wordlists & Custom Wordlist Generation
+
+- **Auto-Learned Passwords**: Any password cracked during attacks is automatically appended to `wordlists/cracked_wordlists.txt` and prioritized in future guess lists.
+- **Custom Wordlists**: If you need to generate tailored wordlists based on specific keywords, names, or patterns, use [**dyal96/Custom-Wordlist-Generator**](https://github.com/dyal96/Custom-Wordlist-Generator).
 
 ---
 

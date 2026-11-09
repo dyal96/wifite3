@@ -12,7 +12,12 @@ from typing import Any, Dict, Optional
 
 from wifit3.crack.hc22000_format import read_hc22000
 from wifit3.crack.wpa_psk import hashcat_plain
-from wifit3.crack.passwords import DEFAULT_PASSWORDS_PATH, expand_wordlists, ssid_passwords
+from wifit3.crack.passwords import (
+    DEFAULT_PASSWORDS_PATH,
+    cracked_wordlist_path,
+    expand_wordlists,
+    ssid_passwords,
+)
 from wifit3.models import PersistedCapture, ToolCapability, ToolResult, ToolStatus
 from wifit3.models.jobs import JobAction, JobState, ToolName
 from wifit3.persist.config import Config
@@ -117,6 +122,9 @@ class HashcatTool(CrackerTool[HashcatQueue]):
             raise ValueError(f"Wordlist not found: {', '.join(requested)}")
         if job.config.get("default_passwords"):
             wordlists.insert(0, str(DEFAULT_PASSWORDS_PATH.resolve()))
+        cracked_wl = cracked_wordlist_path()
+        if cracked_wl.exists() and cracked_wl.stat().st_size > 0:
+            wordlists.insert(0, str(cracked_wl.resolve()))
         wordlists = list(dict.fromkeys(wordlists))
         essid_passwords = (capture_ssid_variants(job.hashlines_path)
                            if job.config.get("ap_ssid_passwords") else [])

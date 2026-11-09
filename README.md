@@ -39,8 +39,19 @@
   - WPS Push-Button Active (+70 score)
   - WPA2 Crackable (+50 score)
   - WPA3-only networks are skipped automatically
+- **Target Skipping (`N` / `Next ›`):** Press `N` or click `Next ›` in Focus view to skip the current AP immediately. In Auto Mode, wifite3 marks the AP visited, grabs the next highest-scoring candidate, and continues attacks seamlessly.
 - **Campaign Chaining:** Focus auto mode seamlessly steps through: Vault check -> Decloak -> WEP -> WPS PBC -> WPS PixieDust/PIN -> PMKID -> AutoDeauth.
 - **Session Progress Reporting:** Summary toast notifications and persistent audit reports (`"X APs scanned, Y cracked"`).
+
+### Continuous Learning & Wordlists
+- **Auto-Learned Passwords:** Any password recovered during WPA CPU cracking, Hashcat, or WPS PIN/PBC attacks is automatically appended to `wordlists/cracked_wordlists.txt`.
+- **Adaptive Guess List:** Newly cracked passwords are automatically prioritized at the front of the dictionary queue for future targets, accelerating audits across related access points.
+- **Custom Wordlist Generation:** To create tailored target dictionaries based on personal keywords, dates, or organizational patterns, check out [**dyal96/Custom-Wordlist-Generator**](https://github.com/dyal96/Custom-Wordlist-Generator).
+
+### Mobile Field Auditing (Android Termux OTG)
+- **Zero Laptop Required:** Audit entirely from an Android phone using standard USB OTG and a supported Wi-Fi adapter.
+- **One-Line Installer:** Automated setup via `curl -sSL https://raw.githubusercontent.com/dyal96/wifite3/main/termux-setup.sh | bash`.
+- **Detailed Mobile Guide:** Full setup, non-root `termux-usb` routing, and display optimization documented in [`termux-guide.md`](termux-guide.md).
 
 ### Reconnaissance & Analysis
 - **Multi-Card Aggregation:** Capture packets across multiple adapters simultaneously; pick a dedicated card to inject.

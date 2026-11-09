@@ -1,8 +1,8 @@
 #!/data/data/com.termux/files/usr/bin/bash
 # ==============================================================================
-# wifite3 / wifit3 — Automated Termux Bootstrap & Launcher for Android OTG
+# wifite3 / wifit3 - Automated Termux Bootstrap & Launcher for Android OTG
 # Repository: https://github.com/dyal96/wifite3
-# Upstream:   https://github.com/derv82/wifit3
+# Upstream:   https://github.com/dyal96/wifite3
 # ==============================================================================
 
 set -e
