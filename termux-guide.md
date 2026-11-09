@@ -80,7 +80,7 @@ pip install uv
 ```bash
 git clone https://github.com/dyal96/wifite3.git ~/wifite3
 cd ~/wifite3
-uv sync
+uv sync --no-dev
 ```
 
 ---

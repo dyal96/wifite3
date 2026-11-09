@@ -43,7 +43,7 @@ if %ERRORLEVEL% equ 0 (
     echo [wifit3] Setting up environment with Python 3.11...
     uv sync --no-dev --python 3.11
     if %ERRORLEVEL% equ 0 (
-        uv run wifit3 %*
+        uv run --no-dev wifit3 %*
         goto :handle_exit
     )
 )

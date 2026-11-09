@@ -55,7 +55,7 @@ else
 fi
 
 echo -e "${COLOR_GREEN}[+] Synchronizing project dependencies via uv...${COLOR_RESET}"
-uv sync
+uv sync --no-dev
 
 # Create a convenient global shortcut command 'wifit3'
 BIN_PATH="$PREFIX/bin/wifit3"
@@ -73,7 +73,7 @@ if command -v su &> /dev/null && [ -d "/dev/bus/usb" ]; then
     su -c "chmod -R 666 /dev/bus/usb/" 2>/dev/null || true
 fi
 
-exec uv run wifit3 "$@"
+exec uv run --no-dev wifit3 "$@"
 EOF
 chmod +x "$BIN_PATH"
 

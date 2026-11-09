@@ -38,6 +38,10 @@ dev = [
     "textual-dev",
 ]
 
+[tool.uv]
+default-groups = []
+
+
 [tool.ruff]
 # This codebase is hand-formatted (~99-col, multi-per-line collections) and is NOT
 # `ruff format`-clean. Running `ruff format` reflows the whole tree at the default 88-col +

@@ -93,12 +93,12 @@ fi
 # 4. Synchronize environment
 if [ ! -d ".venv" ]; then
     echo -e "${COLOR_GREEN}[+] Initializing virtual environment and syncing dependencies via uv...${COLOR_RESET}"
-    uv sync
+    uv sync --no-dev
 else
     # Quick sync check
-    uv sync --quiet
+    uv sync --no-dev --quiet
 fi
 
 # 5. Launch wifite3 / wifit3
 echo -e "${COLOR_GREEN}[✓] Launching wifit3...${COLOR_RESET}"
-exec uv run wifit3 "$@"
+exec uv run --no-dev wifit3 "$@"

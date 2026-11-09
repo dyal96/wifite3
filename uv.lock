@@ -1366,6 +1366,7 @@ wheels = [
 [[package]]
 name = "wifit3"
 source = { editable = "." }
+default-groups = []
 dependencies = [
     { name = "libusb-package", marker = "sys_platform != 'android'" },
     { name = "platformdirs" },
